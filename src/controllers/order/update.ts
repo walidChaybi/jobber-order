@@ -4,9 +4,16 @@ import Stripe from 'stripe';
 import { Request, Response } from 'express';
 import { config } from '@order/config';
 import { StatusCodes } from 'http-status-codes';
-import { approveDeliveryDate, approveOrder, cancelOrder, rejectDeliveryDate, requestDeliveryExtension, sellerDeliverOrder } from '@order/services/order.service';
+import {
+  approveDeliveryDate,
+  approveOrder,
+  cancelOrder,
+  rejectDeliveryDate,
+  requestDeliveryExtension,
+  sellerDeliverOrder
+} from '@order/services/order.service';
 import { orderUpdateSchema } from '@order/schemes/order';
-import { BadRequestError, IDeliveredWork, IOrderDocument, uploads } from '@walidchaybi/jobber-shared';
+import { BadRequestError, IDeliveredWork, IOrderDocument, upload } from '@walidchaybi/jobber-shared';
 import { UploadApiResponse } from 'cloudinary';
 
 const stripe: Stripe = new Stripe(config.STRIPE_API_KEY!, {
@@ -19,7 +26,7 @@ const cancel = async (req: Request, res: Response): Promise<void> => {
   });
   const { orderId } = req.params;
   await cancelOrder(orderId, req.body.orderData);
-  res.status(StatusCodes.OK).json({ message: 'Order cancelled successfully.'});
+  res.status(StatusCodes.OK).json({ message: 'Order cancelled successfully.' });
 };
 
 const requestExtension = async (req: Request, res: Response): Promise<void> => {
@@ -55,7 +62,7 @@ const deliverOrder = async (req: Request, res: Response): Promise<void> => {
   const randomCharacters: string = randomBytes.toString('hex');
   let result: UploadApiResponse;
   if (file) {
-    result = (req.body.fileType === 'zip' ? await uploads(file, `${randomCharacters}.zip`) : await uploads(file)) as UploadApiResponse;
+    result = (req.body.fileType === 'zip' ? await upload(file, `${randomCharacters}.zip`) : await upload(file)) as UploadApiResponse;
     if (!result.public_id) {
       throw new BadRequestError('File upload error. Try again', 'Update deliverOrder() method');
     }
@@ -66,16 +73,10 @@ const deliverOrder = async (req: Request, res: Response): Promise<void> => {
     file,
     fileType: req.body.fileType,
     fileName: req.body.fileName,
-    fileSize: req.body.fileSize,
+    fileSize: req.body.fileSize
   };
   const order: IOrderDocument = await sellerDeliverOrder(orderId, true, deliveredWork);
   res.status(StatusCodes.OK).json({ message: 'Order delivered successfully.', order });
 };
 
-export {
-  cancel,
-  requestExtension,
-  deliveryDate,
-  buyerApproveOrder,
-  deliverOrder
-};
+export { cancel, requestExtension, deliveryDate, buyerApproveOrder, deliverOrder };
